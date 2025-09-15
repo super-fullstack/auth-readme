@@ -78,15 +78,6 @@ management.endpoint.health.show-details=always
 
 ```
 
-### 3. Environment Variables
-
-Set the following environment variables:
-
-```bash
-export DB_USERNAME=your_db_username
-export DB_PASSWORD=your_db_password
-export JWT_SECRET_KEY=your-super-secret-jwt-key
-```
 
 ### 4. Build and Run
 
