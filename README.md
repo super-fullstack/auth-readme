@@ -44,31 +44,38 @@ cd auth-service-superfs
 
 Create `application.yml` or `application.properties`:
 
-```yaml
-server:
-  port: 8010
+```
+spring.application.name=auth-service-superfs
+server.port=8010
 
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/authdb
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+eureka.instance.hostname=auth-service-superfs
+eureka.instance.prefer-ip-address=false
+eureka.instance.instance-id=${spring.application.name}:${server.port}
 
-jwt:
-  secret:
-    key: ${JWT_SECRET_KEY:your-secret-key-here}
-  expiration: 86400000 # 24 hours
 
-logging:
-  level:
-    com.elu.authservicesuperfs: DEBUG
+eureka.client.service-url.defaultZone=http://eureka-service-superfs:8761/eureka/
+
+
+spring.config.import=optional:configserver:http://cloud-config-superfs:8888
+
+spring.datasource.url=jdbc:mysql://mysql:3306/superfs
+spring.datasource.username=root
+spring.datasource.password=6969
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# JPA settings
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+
+management.endpoints.web.exposure.include=health,info,prometheus
+
+management.endpoint.health.show-details=always
+
 ```
 
 ### 3. Environment Variables
@@ -86,19 +93,8 @@ export JWT_SECRET_KEY=your-super-secret-jwt-key
 #### Using Maven:
 ```bash
 # Build
-mvn clean install
+mvn install -DskipTests 
 
-# Run
-mvn spring-boot:run
-```
-
-#### Using Gradle:
-```bash
-# Build
-./gradlew clean build
-
-# Run
-./gradlew bootRun
 ```
 
 The service will start on port `8010`.
@@ -170,17 +166,18 @@ http://localhost:8010/auth
 ### 1. Create Dockerfile
 
 ```dockerfile
-FROM openjdk:17-jdk-slim
 
+FROM maven:3.9.0-eclipse-temurin-17-alpine AS build
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-COPY target/auth-service-superfs-*.jar app.jar
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
-EXPOSE 8010
-
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 ```
 
 ### 2. Build Docker Image
